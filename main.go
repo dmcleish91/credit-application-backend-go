@@ -35,7 +35,7 @@ var DATABASE_URL string = os.Getenv("DATABASE_URL")
 func main() {
 	godotenv.Load()
 	user := os.Getenv("username")
-	pass := os.Getenv(("password"))
+	pass := os.Getenv("password")
 
 	//conn := createDatabaseConnection(DATABASE_URL)
 	//conn.Close()
