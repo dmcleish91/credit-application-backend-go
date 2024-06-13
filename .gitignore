@@ -1,0 +1,24 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+.env
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories (uncomment if using vendor directory)
+# vendor/
+
+# Go workspace file (for Go 1.14+)
+go.work
+go.work.sum
+
+# IDE/Editor specific files (adjust based on your IDE)
+# *.idea/
+# .vscode/
