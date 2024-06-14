@@ -30,15 +30,17 @@ type Customer struct {
 	AdditionalInformation string  `json:"additionalInformation"`
 }
 
-var DATABASE_URL string = os.Getenv("DATABASE_URL")
+var DATABASE_URL string
+var conn *pgxpool.Pool
 
 func main() {
 	godotenv.Load()
+	DATABASE_URL = os.Getenv("DATABASE_URL")
 	user := os.Getenv("username")
 	pass := os.Getenv("password")
 
-	//conn := createDatabaseConnection(DATABASE_URL)
-	//conn.Close()
+	conn = createDatabaseConnection(DATABASE_URL)
+	defer conn.Close()
 
 	e := echo.New()
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
@@ -82,15 +84,20 @@ func addCustomer(ctx echo.Context) error {
 		log.Printf("Failed unmarshaling: %s", err)
 		return ctx.String(http.StatusInternalServerError, "Some error occured")
 	}
-	insertCustomer(customer)
+	result, err := insertCustomer(customer)
+	if err != nil {
+		log.Printf("Failed insert into database: %s", err)
+		return ctx.String(http.StatusInternalServerError, "Some error occured")
+	}
 
-	log.Printf("this is your data: %#v", customer)
-	return ctx.String(http.StatusOK, "User data created")
+	if result == 1 {
+		return ctx.String(http.StatusOK, "Customer data accepted")
+	} else {
+		return ctx.String(http.StatusInternalServerError, "Some error occured")
+	}
 }
 
 func insertCustomer(customer Customer) (int64, error) {
-	conn := createDatabaseConnection(DATABASE_URL)
-	defer conn.Close()
 
 	result, err := conn.Exec(context.Background(), "INSERT INTO public.customers (uuid, first_name, last_name, address, phone_number, email, employer, "+
 		"annual_income, request_credit_amount, additional_information) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);", customer.UUID, customer.FirstName,
