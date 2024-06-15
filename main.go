@@ -55,6 +55,9 @@ func main() {
 	}))
 
 	e.POST("/newcredit", addCustomer)
+	e.POST("/uploadPDF", uploadPDF)
+
+	initTempDir()
 
 	e.Logger.Fatal(e.Start(":8000"))
 }
@@ -110,23 +113,56 @@ func insertCustomer(customer Customer) (int64, error) {
 	return result.RowsAffected(), nil
 }
 
-func fetchAllCustomers(conn *pgxpool.Pool) {
-	var customers []Customer
-	rows, err := conn.Query(context.Background(), "SELECT * FROM customers")
+// func fetchAllCustomers(conn *pgxpool.Pool) {
+// 	var customers []Customer
+// 	rows, err := conn.Query(context.Background(), "SELECT * FROM customers")
+// 	if err != nil {
+// 		fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
+// 		os.Exit(1)
+// 	}
+
+// 	for rows.Next() {
+// 		var customer Customer
+// 		err := rows.Scan(&customer.ID, &customer.UUID, &customer.FirstName, &customer.LastName, &customer.Address,
+// 			&customer.PhoneNumber, &customer.Email, &customer.Employer, &customer.AnnualIncome, &customer.RequestedCreditAmount, &customer.AdditionalInformation)
+// 		if err != nil {
+// 			fmt.Println(err)
+// 		}
+// 		customers = append(customers, customer)
+// 	}
+
+// 	fmt.Println(customers)
+// }
+
+func uploadPDF(c echo.Context) error {
+	// Source
+	file, err := c.FormFile("pdf")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
-	for rows.Next() {
-		var customer Customer
-		err := rows.Scan(&customer.ID, &customer.UUID, &customer.FirstName, &customer.LastName, &customer.Address,
-			&customer.PhoneNumber, &customer.Email, &customer.Employer, &customer.AnnualIncome, &customer.RequestedCreditAmount, &customer.AdditionalInformation)
-		if err != nil {
-			fmt.Println(err)
-		}
-		customers = append(customers, customer)
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	// Check if the uploaded file is a PDF
+	if file.Header.Get("Content-Type") != "application/pdf" {
+		return c.String(http.StatusBadRequest, "The uploaded file is not a PDF")
 	}
 
-	fmt.Println(customers)
+	// Destination
+	dst, err := os.Create(fmt.Sprintf("upload/%s", file.Filename))
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	// Copy
+	if _, err = io.Copy(dst, src); err != nil {
+		return err
+	}
+
+	return c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully", file.Filename))
 }
