@@ -13,7 +13,7 @@ func initTempDir() {
 		return
 	}
 
-	path := "upload"
+	path := "uploads"
 	currentPath := filepath.Join(cwd, path)
 	err = os.Mkdir(currentPath, os.ModePerm)
 	if err != nil {
@@ -24,12 +24,19 @@ func initTempDir() {
 }
 
 // function to create a new path in the same directory as the running go executable
-// func createDirectory(uuid string) {
-// 	currentPath := filepath.Join("temp", uuid)
-// 	err := os.Mkdir(currentPath, os.ModePerm)
-// 	if err != nil {
-// 		log.Println(err)
-// 	} else {
-// 		log.Println("Directory created successfully at", currentPath)
-// 	}
-// }
+func createDirectory(folder string) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	currentPath := filepath.Join(cwd, "uploads", folder)
+	log.Println(currentPath)
+	err = os.Mkdir(currentPath, os.ModePerm)
+	if err != nil {
+		log.Println(err)
+	} else {
+		log.Println("Directory created successfully at", currentPath)
+	}
+}

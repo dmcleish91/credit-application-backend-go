@@ -100,6 +100,47 @@ func addCustomer(ctx echo.Context) error {
 	}
 }
 
+func uploadPDF(c echo.Context) error {
+	// Read form fields
+	folder := c.FormValue("uuid")
+
+	// Read multipart form file
+	file, err := c.FormFile("file")
+	if err != nil {
+		log.Printf("%s", err)
+	}
+
+	// Check if the uploaded file is a PDF
+	if file.Header.Get("Content-Type") != "application/pdf" {
+		return c.String(http.StatusBadRequest, "The uploaded file is not a PDF")
+	}
+
+	// opens multipart form file
+	src, err := file.Open()
+	if err != nil {
+		log.Printf("%s", err)
+	}
+	defer src.Close()
+
+	// create destination folder in uploads
+	createDirectory(folder)
+
+	// creates the file at the target location
+	fileLocation := fmt.Sprintf("uploads/%s/%s", folder, file.Filename)
+	dst, err := os.Create(fileLocation)
+	if err != nil {
+		log.Printf("%s", err)
+	}
+	defer dst.Close()
+
+	// copy the file from memory to the destination
+	if _, err = io.Copy(dst, src); err != nil {
+		log.Printf("%s", err)
+	}
+
+	return c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully", file.Filename))
+}
+
 func insertCustomer(customer Customer) (int64, error) {
 
 	result, err := conn.Exec(context.Background(), "INSERT INTO public.customers (uuid, first_name, last_name, address, phone_number, email, employer, "+
@@ -133,36 +174,3 @@ func insertCustomer(customer Customer) (int64, error) {
 
 // 	fmt.Println(customers)
 // }
-
-func uploadPDF(c echo.Context) error {
-	// Source
-	file, err := c.FormFile("pdf")
-	if err != nil {
-		return err
-	}
-
-	src, err := file.Open()
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-
-	// Check if the uploaded file is a PDF
-	if file.Header.Get("Content-Type") != "application/pdf" {
-		return c.String(http.StatusBadRequest, "The uploaded file is not a PDF")
-	}
-
-	// Destination
-	dst, err := os.Create(fmt.Sprintf("upload/%s", file.Filename))
-	if err != nil {
-		return err
-	}
-	defer dst.Close()
-
-	// Copy
-	if _, err = io.Copy(dst, src); err != nil {
-		return err
-	}
-
-	return c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully", file.Filename))
-}
